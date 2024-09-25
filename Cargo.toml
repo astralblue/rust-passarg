@@ -1,0 +1,11 @@
+[package]
+name = "passarg"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Implements OpenSSL-style password/passphrase argument handling."
+repository = "https://github.com/astralblue/rust-passarg"
+
+[dependencies]
+thiserror = "^1.0.64"
+rpassword = "7.3.1"
