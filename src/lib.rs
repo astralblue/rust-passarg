@@ -125,6 +125,7 @@ pub enum Error {
 ///
 /// When `Reader` goes out of scope, it closes all files and file descriptors opened it opened.
 /// `Reader` leaves stdin open even when used.
+#[derive(Default)]
 pub struct Reader<'a> {
     files: HashMap<std::path::PathBuf, BufReader<File>>,
     fds: HashMap<RawFd, BufReader<File>>,
@@ -133,17 +134,13 @@ pub struct Reader<'a> {
 
 impl Reader<'_> {
     pub fn new() -> Self {
-        Self {
-            files: Default::default(),
-            fds: Default::default(),
-            stdin: None,
-        }
+        Self::default()
     }
 
     /// Reads and returns a password from the given source (`arg`).
     /// See package documentation for the accepted formats of `arg`.
     pub fn read_pass_arg(&mut self, arg: &str) -> Result<String, Error> {
-        let kv: Vec<&str> = arg.splitn(2, ":").collect();
+        let kv: Vec<&str> = arg.splitn(2, ':').collect();
         Ok(match kv[..] {
             [] => panic!("splitn returned nothing"),
             ["pass", password] => String::from(password),
@@ -185,3 +182,4 @@ impl Reader<'_> {
         Ok(line.trim_end_matches('\n').into())
     }
 }
+
