@@ -104,6 +104,7 @@ use std::fs::File;
 use std::io::{stdin, BufRead, BufReader, StdinLock};
 use std::num::ParseIntError;
 use std::os::fd::{FromRawFd, RawFd};
+use std::str::FromStr;
 
 /// Errors that can arise while reading password argument.
 #[derive(thiserror::Error, Debug)]
@@ -116,6 +117,40 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error("{0}")]
     FdLiteral(#[from] ParseIntError),
+}
+
+/// Password source.
+pub enum Source {
+    /// Literal password string.
+    Pass(String),
+    /// Environmental variable.
+    Env(std::ffi::OsString),
+    /// File.
+    File(std::path::PathBuf),
+    /// File descriptor.
+    Fd(RawFd),
+    /// Standard input.
+    Stdin,
+    /// User input.
+    Prompt(String),
+}
+
+impl FromStr for Source {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s.splitn(2, ':').collect::<Vec<_>>()[..] {
+            [] => panic!("splitn returned nothing"),
+            ["pass", password] => Self::Pass(password.into()),
+            ["env", var] => Self::Env(var.into()),
+            ["file", path] => Self::File(path.into()),
+            ["fd", fd] => Self::Fd(fd.parse()?),
+            ["stdin"] => Self::Stdin,
+            ["prompt"] => Self::Prompt("Password: ".to_string()),
+            ["prompt", prompt] => Self::Prompt(prompt.into()),
+            [t, ..] => return Err(Error::InvalidType(t.into())),
+        })
+    }
 }
 
 /// Password argument reader.
@@ -140,12 +175,14 @@ impl Reader<'_> {
     /// Reads and returns a password from the given source (`arg`).
     /// See package documentation for the accepted formats of `arg`.
     pub fn read_pass_arg(&mut self, arg: &str) -> Result<String, Error> {
-        let kv: Vec<&str> = arg.splitn(2, ':').collect();
-        Ok(match kv[..] {
-            [] => panic!("splitn returned nothing"),
-            ["pass", password] => String::from(password),
-            ["env", var] => env::var(var)?,
-            ["file", path] => {
+        self.read_source(arg.parse()?)
+    }
+
+    pub fn read_source(&mut self, source: Source) -> Result<String, Error> {
+        Ok(match source {
+            Source::Pass(password) => password,
+            Source::Env(var) => env::var(var)?,
+            Source::File(path) => {
                 let path = std::fs::canonicalize(path)?;
                 let f = match self.files.get_mut(&path) {
                     Some(f) => f,
@@ -156,8 +193,7 @@ impl Reader<'_> {
                 };
                 Self::read_from_bufreader(f)?
             }
-            ["fd", fd] => {
-                let fd = fd.parse::<RawFd>()?;
+            Source::Fd(fd) => {
                 let f = match self.fds.get_mut(&fd) {
                     Some(f) => f,
                     None => {
@@ -167,12 +203,8 @@ impl Reader<'_> {
                 };
                 Self::read_from_bufreader(f)?
             }
-            ["stdin"] => {
-                Self::read_from_bufreader(self.stdin.get_or_insert_with(|| stdin().lock()))?
-            }
-            ["prompt"] => prompt_password("Password: ")?,
-            ["prompt", prompt] => prompt_password(prompt)?,
-            [t, ..] => return Err(Error::InvalidType(t.into())),
+            Source::Stdin => Self::read_from_bufreader(self.stdin.get_or_insert_with(|| stdin().lock()))?,
+            Source::Prompt(prompt) => prompt_password(prompt)?,
         })
     }
 
