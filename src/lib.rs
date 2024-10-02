@@ -264,56 +264,18 @@ mod test {
         p: Source,
     }
 
+    fn exercise_clap(arg: &str) -> Source {
+        assert_ok!(ClapCli::try_parse_from(vec!["test", "-p", arg].into())).p
+    }
+
     #[test]
     fn test_with_clap_derive() {
-        assert_eq!(
-            assert_ok!(ClapCli::try_parse_from(
-                vec!["test", "-p", "pass:omg"].into_iter()
-            ))
-            .p,
-            Source::Pass("omg".into())
-        );
-        assert_eq!(
-            assert_ok!(ClapCli::try_parse_from(
-                vec!["test", "-p", "env:omg"].into_iter()
-            ))
-            .p,
-            Source::Env("omg".into())
-        );
-        assert_eq!(
-            assert_ok!(ClapCli::try_parse_from(
-                vec!["test", "-p", "file:omg"].into_iter()
-            ))
-            .p,
-            Source::File("omg".into())
-        );
-        assert_eq!(
-            assert_ok!(ClapCli::try_parse_from(
-                vec!["test", "-p", "fd:3"].into_iter()
-            ))
-            .p,
-            Source::Fd(3)
-        );
-        assert_eq!(
-            assert_ok!(ClapCli::try_parse_from(
-                vec!["test", "-p", "stdin"].into_iter()
-            ))
-            .p,
-            Source::Stdin
-        );
-        assert_eq!(
-            assert_ok!(ClapCli::try_parse_from(
-                vec!["test", "-p", "prompt:omg"].into_iter()
-            ))
-            .p,
-            Source::Prompt("omg".into())
-        );
-        assert_eq!(
-            assert_ok!(ClapCli::try_parse_from(
-                vec!["test", "-p", "prompt"].into_iter()
-            ))
-            .p,
-            Source::Prompt("Password: ".into())
-        );
+        assert_eq!(exercise_clap("pass:omg"), Source::Pass("omg".into()));
+        assert_eq!(exercise_clap("env:omg"), Source::Env("omg".into()));
+        assert_eq!(exercise_clap("file:omg"), Source::File("omg".into()));
+        assert_eq!(exercise_clap("fd:3"), Source::Fd(3));
+        assert_eq!(exercise_clap("stdin"), Source::Stdin);
+        assert_eq!(exercise_clap("prompt:omg"), Source::Prompt("omg".into()));
+        assert_eq!(exercise_clap("prompt"), Source::Prompt("Password: ".into()));
     }
 }
