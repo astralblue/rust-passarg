@@ -106,6 +106,7 @@
 use rpassword::prompt_password;
 use std::collections::HashMap;
 use std::env;
+use std::fmt::Display;
 use std::fs::File;
 use std::io::{stdin, BufRead, BufReader, StdinLock};
 use std::num::ParseIntError;
@@ -156,6 +157,26 @@ impl FromStr for Source {
             ["prompt", prompt] => Self::Prompt(prompt.into()),
             [t, ..] => return Err(Error::InvalidType(t.into())),
         })
+    }
+}
+
+impl Display for Source {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use Source::*;
+        match self {
+            Pass(password) => write!(f, "pass:{password}"),
+            Env(var) => {
+                let var = var.clone().into_string().map_err(|_| std::fmt::Error)?;
+                write!(f, "env:{var}")
+            }
+            File(path) => {
+                let path = path.clone().into_os_string().into_string().map_err(|_| std::fmt::Error)?;
+                write!(f, "file:{path}")
+            }
+            Fd(fd) => write!(f, "fd:{fd}"),
+            Stdin => write!(f, "stdin"),
+            Prompt(prompt) => write!(f, "prompt:{prompt}"),
+        }
     }
 }
 
