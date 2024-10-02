@@ -265,7 +265,7 @@ mod test {
     }
 
     fn exercise_clap(arg: &str) -> Source {
-        assert_ok!(ClapCli::try_parse_from(vec!["test", "-p", arg].into())).p
+        assert_ok!(ClapCli::try_parse_from(vec!["test", "-p", arg].into_iter())).p
     }
 
     #[test]
