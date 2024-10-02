@@ -16,10 +16,16 @@
 //! }
 //!
 //! fn main() -> Result<(), passarg::Error> {
+//!     unsafe { // for doctest
+//!         std::env::set_var("MY_PASS_IN", "MyDecryptionPassphrase");
+//!         std::env::set_var("MY_PASS_OUT", "MyEncryptionPassphrase");
+//!     }
 //!     let cli = Cli::parse();
 //!     let mut r = passarg::Reader::new();
 //!     let pass_in = r.read_pass_arg(&cli.pass_in)?;
 //!     let pass_out = r.read_pass_arg(&cli.pass_out)?;
+//!     // assert_eq!(pass_in, "MyDecryptionPassphrase");
+//!     // assert_eq!(pass_out, "MyEncryptionPassphrase");
 //!     // ...
 //!     Ok(())
 //! }

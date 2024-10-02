@@ -9,3 +9,6 @@ repository = "https://github.com/astralblue/rust-passarg"
 [dependencies]
 thiserror = "1.0.2"
 rpassword = "6.0.0"
+
+[dev-dependencies]
+clap = { version = "4.0.0", features = ["derive"] }
