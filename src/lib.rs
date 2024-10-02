@@ -127,6 +127,7 @@ pub enum Error {
 }
 
 /// Password source.
+#[derive(Debug, Clone, PartialEq)]
 pub enum Source {
     /// Literal password string.
     Pass(String),
@@ -242,3 +243,34 @@ impl Reader<'_> {
     }
 }
 
+#[cfg(test)]
+mod test {
+    use assert_ok::assert_ok;
+    use clap::Parser as ClapParser;
+
+    use super::*;
+
+    #[derive(ClapParser)]
+    struct ClapCli {
+        #[arg(short)]
+        p: Source,
+    }
+
+    #[test]
+    fn test_with_clap_derive() {
+        assert_eq!(assert_ok!(ClapCli::try_parse_from(vec!["test", "-p", "pass:omg"].into_iter())).p,
+                   Source::Pass("omg".into()));
+        assert_eq!(assert_ok!(ClapCli::try_parse_from(vec!["test", "-p", "env:omg"].into_iter())).p,
+                   Source::Env("omg".into()));
+        assert_eq!(assert_ok!(ClapCli::try_parse_from(vec!["test", "-p", "file:omg"].into_iter())).p,
+                   Source::File("omg".into()));
+        assert_eq!(assert_ok!(ClapCli::try_parse_from(vec!["test", "-p", "fd:3"].into_iter())).p,
+                   Source::Fd(3));
+        assert_eq!(assert_ok!(ClapCli::try_parse_from(vec!["test", "-p", "stdin"].into_iter())).p,
+                   Source::Stdin);
+        assert_eq!(assert_ok!(ClapCli::try_parse_from(vec!["test", "-p", "prompt:omg"].into_iter())).p,
+                   Source::Prompt("omg".into()));
+        assert_eq!(assert_ok!(ClapCli::try_parse_from(vec!["test", "-p", "prompt"].into_iter())).p,
+                   Source::Prompt("Password: ".into()));
+    }
+}
