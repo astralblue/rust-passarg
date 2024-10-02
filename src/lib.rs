@@ -171,7 +171,11 @@ impl Display for Source {
                 write!(f, "env:{var}")
             }
             File(path) => {
-                let path = path.clone().into_os_string().into_string().map_err(|_| std::fmt::Error)?;
+                let path = path
+                    .clone()
+                    .into_os_string()
+                    .into_string()
+                    .map_err(|_| std::fmt::Error)?;
                 write!(f, "file:{path}")
             }
             Fd(fd) => write!(f, "fd:{fd}"),
@@ -215,7 +219,8 @@ impl Reader<'_> {
                 let f = match self.files.get_mut(&path) {
                     Some(f) => f,
                     None => {
-                        self.files.insert(path.clone(), BufReader::new(File::open(&path)?));
+                        self.files
+                            .insert(path.clone(), BufReader::new(File::open(&path)?));
                         self.files.get_mut(&path).unwrap()
                     }
                 };
@@ -225,13 +230,16 @@ impl Reader<'_> {
                 let f = match self.fds.get_mut(&fd) {
                     Some(f) => f,
                     None => {
-                        self.fds.insert(fd, BufReader::new(unsafe { File::from_raw_fd(fd) }));
+                        self.fds
+                            .insert(fd, BufReader::new(unsafe { File::from_raw_fd(fd) }));
                         self.fds.get_mut(&fd).unwrap()
                     }
                 };
                 Self::read_from_bufreader(f)?
             }
-            Source::Stdin => Self::read_from_bufreader(self.stdin.get_or_insert_with(|| stdin().lock()))?,
+            Source::Stdin => {
+                Self::read_from_bufreader(self.stdin.get_or_insert_with(|| stdin().lock()))?
+            }
             Source::Prompt(prompt) => prompt_password(prompt)?,
         })
     }
@@ -258,19 +266,54 @@ mod test {
 
     #[test]
     fn test_with_clap_derive() {
-        assert_eq!(assert_ok!(ClapCli::try_parse_from(vec!["test", "-p", "pass:omg"].into_iter())).p,
-                   Source::Pass("omg".into()));
-        assert_eq!(assert_ok!(ClapCli::try_parse_from(vec!["test", "-p", "env:omg"].into_iter())).p,
-                   Source::Env("omg".into()));
-        assert_eq!(assert_ok!(ClapCli::try_parse_from(vec!["test", "-p", "file:omg"].into_iter())).p,
-                   Source::File("omg".into()));
-        assert_eq!(assert_ok!(ClapCli::try_parse_from(vec!["test", "-p", "fd:3"].into_iter())).p,
-                   Source::Fd(3));
-        assert_eq!(assert_ok!(ClapCli::try_parse_from(vec!["test", "-p", "stdin"].into_iter())).p,
-                   Source::Stdin);
-        assert_eq!(assert_ok!(ClapCli::try_parse_from(vec!["test", "-p", "prompt:omg"].into_iter())).p,
-                   Source::Prompt("omg".into()));
-        assert_eq!(assert_ok!(ClapCli::try_parse_from(vec!["test", "-p", "prompt"].into_iter())).p,
-                   Source::Prompt("Password: ".into()));
+        assert_eq!(
+            assert_ok!(ClapCli::try_parse_from(
+                vec!["test", "-p", "pass:omg"].into_iter()
+            ))
+            .p,
+            Source::Pass("omg".into())
+        );
+        assert_eq!(
+            assert_ok!(ClapCli::try_parse_from(
+                vec!["test", "-p", "env:omg"].into_iter()
+            ))
+            .p,
+            Source::Env("omg".into())
+        );
+        assert_eq!(
+            assert_ok!(ClapCli::try_parse_from(
+                vec!["test", "-p", "file:omg"].into_iter()
+            ))
+            .p,
+            Source::File("omg".into())
+        );
+        assert_eq!(
+            assert_ok!(ClapCli::try_parse_from(
+                vec!["test", "-p", "fd:3"].into_iter()
+            ))
+            .p,
+            Source::Fd(3)
+        );
+        assert_eq!(
+            assert_ok!(ClapCli::try_parse_from(
+                vec!["test", "-p", "stdin"].into_iter()
+            ))
+            .p,
+            Source::Stdin
+        );
+        assert_eq!(
+            assert_ok!(ClapCli::try_parse_from(
+                vec!["test", "-p", "prompt:omg"].into_iter()
+            ))
+            .p,
+            Source::Prompt("omg".into())
+        );
+        assert_eq!(
+            assert_ok!(ClapCli::try_parse_from(
+                vec!["test", "-p", "prompt"].into_iter()
+            ))
+            .p,
+            Source::Prompt("Password: ".into())
+        );
     }
 }
